@@ -1,0 +1,21 @@
+# finance-expert-pack 运行依赖
+# 安装：pip install -r requirements.txt
+# 说明：脚本按需 import，缺哪个包只有对应功能不可用，不会整体崩溃。
+
+# 核心（多个脚本共用）
+requests>=2.31.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 行情 / 财务 / 资金面数据源
+akshare>=1.14.0
+baostock>=0.8.8
+
+# 美股 / 港股（部分脚本）
+yfinance>=0.2.40
+
+# 导出 / 报表（a-share-pro 绩效汇总等）
+openpyxl>=3.1.0
+
+# 注意：NeoData 网关与元宝 prosearch 为可选私有运行时（OpenClaw/JPRX），
+# 通过环境变量 AUTH_GATEWAY_PORT / PROSEARCH_SCRIPT 配置，未配置时对应功能优雅降级。

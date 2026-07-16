@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# 本地缓存 / 取数中间产物（按需保留或忽略）
+cache/
+*.cache
+
+# 环境变量 / 密钥（切勿提交真实 Token）
+.env
+*.local
+
+# 回测产出（可选：保留或忽略，视发布意图而定）
+*_equity.csv
+*_trades.csv
+*_summary.json
+index_*.html
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store

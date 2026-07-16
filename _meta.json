@@ -1,0 +1,20 @@
+{
+  "name": "finance-expert-pack",
+  "slug": "finance-expert-pack",
+  "version": "1.0.0",
+  "description": "金融投资全能工具包（A股/港股/美股）：实时行情、技术分析、资金流向、舆情监控、财经热榜、市场环境、金融数据搜索、23指标评分、热度TOP50。整合专家框架+9个金融skill为单一可移植skill。",
+  "homepage": "",
+  "author": "CT",
+  "tags": ["finance", "a-share", "stock-analysis", "market", "quant"],
+  "requires": {
+    "bins": ["python3", "node"],
+    "python_packages": ["requests", "pandas", "numpy", "akshare", "baostock", "yfinance", "openpyxl"],
+    "config": [
+      {"name": "ZHITU_TOKEN", "required": true, "desc": "智兔数服实时行情主源鉴权 Token（必填）"},
+      {"name": "TUSHARE_TOKEN", "required": false, "desc": "Tushare Pro Token（a-share-pro 多源降级可选）"},
+      {"name": "AUTH_GATEWAY_PORT", "required": false, "desc": "NeoData 网关端口，默认 19000，仅 OpenClaw/JPRX 运行时需要"},
+      {"name": "PROSEARCH_SCRIPT", "required": false, "desc": "元宝/prosearch 网页搜索脚本路径，默认 QClaw 内置路径"}
+    ]
+  },
+  "os": ["win32", "linux", "darwin"]
+}
