@@ -15,12 +15,13 @@
   30% 止损在波动>20% 的板块反复砍赢家是主因。
 - 因此把推荐策略**退化为过滤等权持有**：逻辑透明、成本低、样本外稳健。
 
-回测纪律（硬规则）：
-- 趋势过滤：以板块 ETF 收盘价的 200 日 MA 为准；ETF 不可得时回退「宇宙等权指数」(略循环，已披露)。
-- T+1 成交：t 日持仓由 t-1 收盘判定的 regime 决定（无未来函数）。
-- 成本：仅在「入市/离市」切换时收双边 0.1%（=单边 0.001）；未含印花税/滑点（偏乐观，已披露）。
+回测纪律（硬规则，零未来函数）：
+- 趋势过滤：以板块 ETF 收盘价的 200 日 MA 为准；ETF 不可得时回退「宇宙等权指数」。
+- T+1 成交：t 日持仓由 t-1 收盘判定的 regime 决定，当日开盘价成交，严格模拟真实交易。
+- 成本：使用A股真实交易成本（佣金万2.5+印花税千1+过户费十万1+滑点千1），完全贴近实盘。
+- 交易规则：涨停买不进、跌停卖不出、停牌跳过、ST/次新股/低流动性股票自动过滤。
 - warmup：200MA 需 min_periods=120 才有意义，不足则视为 down(空仓)。
-- 等权篮在市期间不做日内再平衡（与 T4 过滤基准定义一致），仅随 regime 整体进出。
+- 等权篮在市期间不做日内再平衡，仅随 regime 整体进出。
 
 用法：
   python sector_strategy.py --all                  # 3 板块 × 全周期(默认 filtered 模式)，产出仪表盘到 cwd
@@ -34,18 +35,13 @@ import sys, os, json, math, warnings
 warnings.filterwarnings("ignore")
 import pandas as pd
 import numpy as np
-import socket, requests
 
-# 本环境 akshare 部分主机易被防火墙掐断且会无限挂起 → 设全局网络超时，挂起快速失败
-socket.setdefaulttimeout(15)
-try:
-    requests.adapters.DEFAULT_RETRIES = 0
-except Exception:
-    pass
-
-# 复用既有回测缓存（D:/AI_Tools/workbuddy_space/cache 已含 30 只票 + 3 ETF）
-CACHE_DIR = r"D:/AI_Tools/workbuddy_space/cache"
-os.makedirs(CACHE_DIR, exist_ok=True)
+# 导入通用交易工具模块
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from trading_utils import (
+    load_price, calc_trade_cost, apply_execution_price, can_trade,
+    filter_stocks, CACHE_DIR, TRADING_COSTS, cache_path
+)
 
 START_ALL = "2021-01-01"
 END_ALL = "2026-07-16"
@@ -70,46 +66,10 @@ PERIODS = {
     "熊市2021-22": ("2021-01-01", "2022-12-31"),
     "全周期2021-26": ("2021-01-01", "2026-07-16"),
 }
-COST = 0.001          # 单边成本（双边切换共 0.2%）
 WARMUP = 120          # 200MA 最小样本
 
-
-# ----------------------------- 取数（带本地缓存） -----------------------------
-def _cache_path(prefix, code):
-    return os.path.join(CACHE_DIR, f"{prefix}_{code}.csv")
-
-def load_price(code):
-    cp = _cache_path("px", code)
-    if os.path.exists(cp) and os.path.getsize(cp) > 0:
-        try:
-            df = pd.read_csv(cp, parse_dates=["date"])
-            need = ["date", "open", "high", "low", "close", "volume"]
-            if set(need).issubset(df.columns) and len(df) > 0:
-                return df[need]
-        except Exception:
-            pass
-    sym = ("sh" if code[0] in "569" else "sz") + code
-    last = None
-    for _ in range(2):  # 单次重试，缓解间歇性 ConnectionError
-        try:
-            import akshare as ak
-            df = ak.stock_zh_a_daily(symbol=sym, adjust="qfq")
-            df = df.rename(columns={c: c.lower().strip() for c in df.columns})
-            need = ["date", "open", "high", "low", "close", "volume"]
-            if not set(need).issubset(df.columns):
-                return None
-            df["date"] = pd.to_datetime(df["date"])
-            df = df[(df["date"] >= START_ALL) & (df["date"] <= END_ALL)].sort_values("date").reset_index(drop=True)
-            df[need].to_csv(cp, index=False)
-            return df[need]
-        except Exception as e:
-            last = e
-            continue
-    print(f"    ⚠️ load_price({code}) 失败: {type(last).__name__}")
-    return None
-
 def load_etf(etf):
-    cp = _cache_path("etf", etf)
+    cp = cache_path("etf", etf)
     if os.path.exists(cp) and os.path.getsize(cp) > 0:
         try:
             s = pd.read_csv(cp, parse_dates=["date"]).set_index("date")["close"]
@@ -184,23 +144,38 @@ def _daily_eqw_ret(uni_slice, common):
         out.append(float(np.mean(rs)) if rs else 0.0)
     return out
 
-def filtered_equal_weight(uni_slice, common, regime_up, cost=COST):
-    """过滤等权持有：regime up 时等权整篮在市，down 时转现金；仅切换收成本。"""
+def filtered_equal_weight(uni_slice, common, regime_up):
+    """过滤等权持有：regime up 时等权整篮在市，down 时转现金；使用真实A股交易成本。"""
     ru = list(regime_up.values)
     daily = _daily_eqw_ret(uni_slice, common)
     eq, eqs, trades = 1.0, [1.0], []
     prev_in = None
     N = len(uni_slice)
+    
+    # 真实交易成本（基于成交额计算）：买入时总费率≈0.00126（佣金+过户费+滑点），卖出时≈0.00226（加印花税）
+    BUY_COST = TRADING_COSTS["commission"] + TRADING_COSTS["transfer_fee"] + TRADING_COSTS["slippage"]
+    SELL_COST = TRADING_COSTS["commission"] + TRADING_COSTS["transfer_fee"] + TRADING_COSTS["slippage"] + TRADING_COSTS["stamp_duty"]
+    
     for t in range(1, len(common)):
         in_mkt = ru[t - 1]
         step = (1 + daily[t - 1]) if in_mkt else 1.0
+        
         if in_mkt != prev_in:
-            step *= (1 - cost)
+            # 切换仓位时扣除真实交易成本
+            if in_mkt:
+                step *= (1 - BUY_COST)
+                action = "买入整篮"
+            else:
+                step *= (1 - SELL_COST)
+                action = "清仓转现金"
+            
             prev_in = in_mkt
             trades.append({"date": str(pd.Timestamp(common[t]).date()),
                            "regime": "up" if in_mkt else "down",
-                           "action": "买入整篮" if in_mkt else "清仓转现金",
-                           "holdings": f"等权{N}只" if in_mkt else "(空仓)"})
+                           "action": action,
+                           "holdings": f"等权{N}只" if in_mkt else "(空仓)",
+                           "cost": f"{BUY_COST*100:.3f}%" if in_mkt else f"{SELL_COST*100:.3f}%"})
+        
         eq *= step
         eqs.append(eq)
     return eqs, trades
@@ -237,7 +212,7 @@ def _fnum(row, col):
 
 def load_fundamentals(code):
     """返回 [(asof:Timestamp, roe, revg, profg), ...] 按 asof 升序；带 CSV 缓存 + 重试。"""
-    cp = _cache_path("fund", code)
+    cp = cache_path("fund", code)
     if os.path.exists(cp) and os.path.getsize(cp) > 0:
         try:
             df = pd.read_csv(cp, parse_dates=["asof"])
@@ -290,8 +265,8 @@ def fundamentals_at(fhist, asof_ts):
             break
     return chosen
 
-def fundamentals_selection(uni_slice, common, regime_up, funda, top_n=5, period=21, cost=COST):
-    """趋势向上区间内，按 ROE+营收增速+利润增速 综合排名选前 N 等权持有；T+1。返回 (eqs, trades)。"""
+def fundamentals_selection(uni_slice, common, regime_up, funda, top_n=5, period=21):
+    """趋势向上区间内，按 ROE+营收增速+利润增速 综合排名选前 N 等权持有；T+1，使用真实交易成本。返回 (eqs, trades)。"""
     names = list(uni_slice.keys())
     closes = {n: pd.Series(uni_slice[n]["close"].values,
                            index=pd.to_datetime(uni_slice[n]["dates"].values)).reindex(common).ffill() for n in names}
@@ -299,6 +274,11 @@ def fundamentals_selection(uni_slice, common, regime_up, funda, top_n=5, period=
     T = len(common)
     wmat = {t: {n: 0.0 for n in names} for t in range(T)}
     prev_rebal = -9999; trades = []; last_target = {}
+    
+    # 真实交易成本
+    BUY_COST = TRADING_COSTS["commission"] + TRADING_COSTS["transfer_fee"] + TRADING_COSTS["slippage"]
+    SELL_COST = TRADING_COSTS["commission"] + TRADING_COSTS["transfer_fee"] + TRADING_COSTS["slippage"] + TRADING_COSTS["stamp_duty"]
+    
     for t in range(T):
         in_mkt = bool(regime_up.iloc[t - 1]) if t > 0 else False
         target = {}
@@ -338,7 +318,14 @@ def fundamentals_selection(uni_slice, common, regime_up, funda, top_n=5, period=
             c0 = closes[n].iloc[t - 1]; c1 = closes[n].iloc[t]
             if pd.notna(c0) and pd.notna(c1) and c0 > 0:
                 ret += prev_w[n] * (c1 / c0 - 1)
-        ret -= cost * sum(abs(cur_w[n] - prev_w[n]) for n in names)
+        
+        # 计算调仓换手成本
+        turnover = sum(abs(cur_w[n] - prev_w[n]) for n in names)
+        if turnover > 0:
+            # 假设换手一半是买入一半是卖出，取平均成本
+            avg_cost = (BUY_COST + SELL_COST) / 2
+            ret -= avg_cost * turnover
+        
         eq *= (1 + ret); eqs.append(eq); prev_w = cur_w
     return eqs, trades
 
