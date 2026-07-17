@@ -2,7 +2,7 @@
 slug: finance-expert-pack
 name: finance-expert-pack
 displayName: 金融投资全能工具包 · Finance Expert Pack
-version: 1.1.1
+version: 1.3.0
 summary: A股量化交易工具包 | 零配置开箱即用 | 真实交易成本回测可信 | 覆盖选股/每日复盘/策略回测/信号告警/持仓跟踪全流程 | 零Token零注册，安装完直接跑
 description: 金融投资全能工具包（A股/港股/美股）。整合实时行情盯盘、技术分析（MACD/KDJ/RSI/布林/筹码）、资金流向、舆情监控、财经热榜、全球市场环境、自然语义金融数据搜索、23通达信指标多维度评分、A股热度TOP50。当用户提到股票分析、行情查询、盯盘、涨跌扫描、涨停板、市场技术面、主力资金、舆情情绪、财经资讯、市场环境、选股策略、买卖点判断时触发。本 skill 是多个金融子能力的统一入口，按意图路由到对应 references/scripts。
 license: MIT
@@ -60,6 +60,15 @@ tags:
 | **条件选股** | `scripts/workspace/stock_screener.py` | 支持均线多头/MACD金叉/突破新高/ROE筛选等常用条件，自动过滤ST/次新/低流动性/暴雷风险股 |
 | **信号告警推送** | `scripts/workspace/signal_alert.py` | 价格/技术信号告警，支持Server酱/PushPlus/企业微信/钉钉多渠道推送，可后台持续监控自选股 |
 | **持仓跟踪与绩效统计** | `scripts/workspace/portfolio_tracker.py` | 纯文本记录交易，自动计算实时盈亏/仓位占比/胜率/盈亏比等实盘绩效指标 |
+| **券商研报爬取** | `scripts/workspace/scraper/research_report_scraper.py` | 全量券商研报爬取，包含分析师评级/目标价/盈利预测，支持按个股/行业/分析师搜索 |
+| **上市公司公告/财报爬取** | `scripts/workspace/scraper/announcement_scraper.py` | 年报/季报/半年报/临时公告批量下载，PDF自动解析，断点续爬 |
+| **金融产品解析** | `scripts/workspace/scraper/web_parser.py` | 基金/ETF/可转债/理财产品详情解析，净值/持仓/业绩对比 |
+| **研报/财报多格式导出** | `scripts/workspace/scraper/report_exporter.py` | 爬取的研报/财报可导出为PDF/Word/Excel/Markdown，自动整理归档 |
+| **金融文档分析对比** | `scripts/workspace/scraper/document_analyzer.py` | 多份研报/财报批量对比分析，自动提取核心观点、一致预期、风险点 |
+| **个股全量报告一键爬取** | `scripts/workspace/scraper/comprehensive_report_scraper.py` | 一键获取指定个股全部公开研报/公告/财报，自动分类整理 |
+| **模拟交易系统** | `scripts/workspace/simulated_trading.py` | 本地模拟A股交易，支持市价/限价/条件单，自动计算手续费和盈亏，适合策略验证和交易练习 |
+| **风控管理系统** | `scripts/workspace/risk_control.py` | 自动检查持仓风险：单票仓位上限、止损止盈提醒、最大回撤预警、波动率监控，避免踩坑 |
+| **全量技术指标** | `scripts/workspace/trading_utils.py` | 内置MA/MACD/RSI/KDJ/BOLL/CCI/WR等8种常用技术指标，支持5/15/30/60分钟级K线分析 |
 
 ## 数据分析总纲
 
