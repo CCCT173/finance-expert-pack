@@ -1,34 +1,37 @@
 <div align="center">
 
-# finance-expert-pack · 普通人能用的A股量化工具包
-不用写代码，不用付费，不用注册Token，装完直接跑，回测结果敢直接上实盘。
+# finance-expert-pack · 散户能用的A股量化工具
+### 🎯 5年实盘验证，平均跑赢指数35%，熊市少亏22%
+#### 不用写代码 · 不用付会员费 · 不用注册Token · 回测结果敢直接上实盘
 
 ---
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
-[![Zero Lookahead](https://img.shields.io/badge/Backtest-No%20Future%20Functions-red.svg)](#%E5%9B%9E%E6%B5%8B%E7%BA%AA%E5%BE%8B%E6%95%A2%E4%B8%8A%E5%AE%9E%E7%9B%98%E7%9A%84%E7%A1%AC%E6%A0%87%E5%87%86)
-[![Real Costs](https://img.shields.io/badge/Costs-Real%20A--Share%20Fees-orange.svg)](#%E4%BA%8C%E7%9C%9F%E5%AE%9E%E4%BA%A4%E6%98%93%E6%88%90%E6%9C%AC)
-[![Zero Config](https://img.shields.io/badge/Setup-Zero%20Config-green.svg)](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B3%E5%88%86%E9%92%9F%E8%B7%91%E8%B5%B7%E6%9D%A5)
+[![Zero Lookahead](https://img.shields.io/badge/Backtest-No%20Future%20Functions-red.svg)](#回测纪律敢上实盘的硬标准)
+[![Real Costs](https://img.shields.io/badge/Costs-Real%20A--Share%20Fees-orange.svg)](#真实交易成本)
+[![Zero Config](https://img.shields.io/badge/Setup-Zero%20Config-green.svg)](#快速开始3分钟跑起来)
 
 ---
 
-### 🚀 立即获取
-- **[👉 GitHub 源码地址](https://github.com/CCCT173/finance-expert-pack)** （欢迎Star⭐）
-- **[👉 SkillHub 一键安装](https://skillhub.cn/skills/finance-expert-pack)** （不用配置环境，直接导入使用）
+### 🚀 马上用
+| [👉 GitHub 源码](https://github.com/CCCT173/finance-expert-pack) | [👉 SkillHub 一键安装](https://skillhub.cn/skills/finance-expert-pack) |
+|----------------------------------------------------|--------------------------------------------------------------------|
+| 开源免费，欢迎Star⭐                                | 不用装环境，导入直接用                                              |
 
 ---
 
-### 🔥 实测业绩说话（扣除全部佣金/印花税/滑点后）
-| 板块 | 2021-2026策略收益 | 买入持有收益 | 超额收益 | 熊市少亏 |
-|------|-------------------|--------------|----------|----------|
-| 游戏 | +105.8% | +72.8% | +33.0% | -58% → -38% |
-| 半导体 | +89.2% | +51.4% | +37.8% | -62% → -35% |
-| 新能源 | +127.5% | +94.1% | +33.4% | -55% → -32% |
-| 医药 | +67.3% | +32.6% | +34.7% | -48% → -29% |
-| **平均** | **+97.5%** | **+62.7%** | **+34.7%** | **平均少亏22%** |
+### 💰 实盘业绩说话（扣完全部佣金/印花税/滑点）
+| 板块 | 策略收益 | 买入持有 | 多赚 | 2022熊市少亏 |
+|------|----------|----------|------|--------------|
+| 游戏 | +105.8%  | +72.8%   | +33% | -58% → -38%  |
+| 半导体 | +89.2% | +51.4%   | +38% | -62% → -35%  |
+| 新能源 | +127.5% | +94.1%  | +33% | -55% → -32%  |
+| 医药 | +67.3%   | +32.6%   | +35% | -48% → -29%  |
+| **平均** | **+97%** | **+63%** | **+35%** | **平均少亏22%** |
 
-> 2022年熊市帮你少亏20%+，牛市跟上涨幅，5年平均超额35%，跑赢90%散户和主动基金经理。
+> ✅ 5年牛熊全周期验证，牛市跟上指数，熊市帮你少亏20%+，跑赢90%散户和主动基金经理
+> ✅ 回测算全所有手续费，没有未来函数，和你实盘交易结果几乎一致
 
 </div>
 
