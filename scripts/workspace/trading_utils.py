@@ -253,3 +253,50 @@ def calc_rsi(df: pd.DataFrame, window=14) -> pd.Series:
     avg_loss = loss.rolling(window).mean()
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
+
+def calc_kdj(df: pd.DataFrame, n=9, m1=3, m2=3) -> tuple:
+    """计算KDJ指标"""
+    low_list = df["low"].rolling(n, min_periods=1).min()
+    high_list = df["high"].rolling(n, min_periods=1).max()
+    rsv = (df["close"] - low_list) / (high_list - low_list) * 100
+    k = rsv.ewm(com=m1-1, adjust=False).mean()
+    d = k.ewm(com=m2-1, adjust=False).mean()
+    j = 3 * k - 2 * d
+    return k, d, j
+
+def calc_boll(df: pd.DataFrame, window=20, std_n=2) -> tuple:
+    """计算布林带指标"""
+    mid = df["close"].rolling(window).mean()
+    std = df["close"].rolling(window).std()
+    upper = mid + std_n * std
+    lower = mid - std_n * std
+    return upper, mid, lower
+
+def calc_cci(df: pd.DataFrame, window=14) -> pd.Series:
+    """计算CCI指标"""
+    tp = (df["high"] + df["low"] + df["close"]) / 3
+    ma = tp.rolling(window).mean()
+    md = tp.rolling(window).apply(lambda x: np.mean(np.abs(x - np.mean(x))))
+    cci = (tp - ma) / (0.015 * md)
+    return cci
+
+def calc_wr(df: pd.DataFrame, window=14) -> pd.Series:
+    """计算威廉指标"""
+    high = df["high"].rolling(window).max()
+    low = df["low"].rolling(window).min()
+    wr = (high - df["close"]) / (high - low) * 100
+    return wr
+
+def load_minute_data(code: str, period: str = "5") -> pd.DataFrame:
+    """加载分钟级K线数据（5/15/30/60分钟）"""
+    try:
+        import akshare as ak
+        symbol = ("sh" if code[0] in "569" else "sz") + code
+        df = ak.stock_zh_a_minute(symbol=symbol, period=period, adjust="qfq")
+        df = df.rename(columns={c: c.lower().strip() for c in df.columns})
+        df["day"] = pd.to_datetime(df["day"])
+        df = df.rename(columns={"day": "date"})
+        return df
+    except Exception as e:
+        print(f"获取分钟K线失败: {e}")
+        return None
