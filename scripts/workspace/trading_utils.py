@@ -79,12 +79,36 @@ def load_price(code: str, adjust: str = "qfq", use_cache: bool = True) -> pd.Dat
     for _ in range(2):
         try:
             import akshare as ak
-            df = ak.stock_zh_a_daily(symbol=sym, adjust=adjust)
-            df = df.rename(columns={c: c.lower().strip() for c in df.columns})
+            if is_etf(code):
+                # ETF数据
+                try:
+                    df = ak.fund_etf_hist_sina(symbol=sym)
+                    df = df.rename(columns={c: c.lower().strip() for c in df.columns})
+                    df["date"] = pd.to_datetime(df["date"])
+                    df["amount"] = df.get("amount", 0)
+                except:
+                    # 备用接口
+                    df = ak.fund_etf_hist_em(symbol=code, period="daily", start_date="20100101", adjust=adjust)
+                    df = df.rename(columns={
+                        "日期": "date", "开盘": "open", "最高": "high", "最低": "low", 
+                        "收盘": "close", "成交量": "volume", "成交额": "amount"
+                    })
+                    df["date"] = pd.to_datetime(df["date"])
+            elif is_index(code):
+                # 指数数据
+                df = ak.stock_zh_index_daily(symbol=sym)
+                df = df.rename(columns={c: c.lower().strip() for c in df.columns})
+                df["amount"] = 0
+                df["date"] = pd.to_datetime(df["date"])
+            else:
+                # 个股数据
+                df = ak.stock_zh_a_daily(symbol=sym, adjust=adjust)
+                df = df.rename(columns={c: c.lower().strip() for c in df.columns})
+                df["date"] = pd.to_datetime(df["date"])
+            
             if not set(need_cols).issubset(df.columns):
                 return None
             
-            df["date"] = pd.to_datetime(df["date"])
             df = df[need_cols].sort_values("date").reset_index(drop=True)
             df["pct_chg"] = df["close"].pct_change() * 100
             
@@ -96,11 +120,24 @@ def load_price(code: str, adjust: str = "qfq", use_cache: bool = True) -> pd.Dat
     return None
 
 # -------------------------- 交易成本计算 --------------------------
-def calc_trade_cost(amount: float, is_buy: bool) -> float:
+def is_etf(code: str) -> bool:
+    """判断是否是ETF代码：上交所51/56/58开头，深交所15/16/18开头"""
+    if code.startswith(("51", "56", "58", "15", "16", "18")):
+        return True
+    return False
+
+def is_index(code: str) -> bool:
+    """判断是否是指数代码：000xxx/399xxx开头"""
+    if code.startswith(("000", "399")):
+        return True
+    return False
+
+def calc_trade_cost(amount: float, is_buy: bool, is_etf_flag: bool = False) -> float:
     """
     计算真实交易成本
     :param amount: 成交金额（元）
     :param is_buy: True=买入, False=卖出
+    :param is_etf_flag: 是否是ETF，ETF免印花税
     :return: 成本金额（元）
     """
     cost = 0
@@ -111,8 +148,8 @@ def calc_trade_cost(amount: float, is_buy: bool) -> float:
     cost += amount * TRADING_COSTS["transfer_fee"]
     # 滑点
     cost += amount * TRADING_COSTS["slippage"]
-    # 印花税（仅卖出）
-    if not is_buy:
+    # 印花税（仅卖出股票收取，ETF免印花税）
+    if not is_buy and not is_etf_flag:
         cost += amount * TRADING_COSTS["stamp_duty"]
     
     return cost
